@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="id" style="scroll-behavior: smooth;">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dokumentasi Sabila - Asisten Backend Lokal</title>
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/sabila-hq/sabila-hq.github.io/main/build/icon.png">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .docs-container {
+            max-width: 900px;
+            margin: 4rem auto;
+            padding: 0 5%;
+        }
+        .docs-header {
+            margin-bottom: 3rem;
+            text-align: center;
+        }
+        .docs-content h2 {
+            margin-top: 3rem;
+            margin-bottom: 1rem;
+            color: var(--primary);
+            border-bottom: 2px solid var(--card-border);
+            padding-bottom: 0.5rem;
+        }
+        .docs-content h3 {
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+            color: var(--text-main);
+        }
+        .docs-content p, .docs-content ul {
+            margin-bottom: 1.5rem;
+            color: var(--text-muted);
+            line-height: 1.8;
+        }
+        .docs-content ul {
+            padding-left: 1.5rem;
+        }
+        .docs-content li {
+            margin-bottom: 0.5rem;
+        }
+        .docs-content code {
+            background: rgba(59, 130, 246, 0.1);
+            color: var(--primary);
+            padding: 0.2rem 0.4rem;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
+        .lang-switch {
+            display: inline-flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .lang-switch a {
+            padding: 0.5rem 1rem;
+            border-radius: 99px;
+            text-decoration: none;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text-main);
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        .lang-switch a.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .alert-box {
+            background: rgba(59, 130, 246, 0.05);
+            border-left: 4px solid var(--primary);
+            padding: 1rem 1.5rem;
+            border-radius: 0 8px 8px 0;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="logo">
+            <img src="https://raw.githubusercontent.com/sabila-hq/sabila-hq.github.io/main/build/icon.png" width="32" height="32" alt="Sabila Logo" style="border-radius: 8px;">
+            Sabila<span class="dot">.</span>
+        </div>
+        <div class="nav-links">
+            <a href="index.html">Beranda</a>
+            <a href="https://github.com/sabila-hq/sabila-hq.github.io" class="github-link" target="_blank">GitHub</a>
+        </div>
+    </nav>
+
+    <main class="docs-container">
+        <header class="docs-header">
+            <h1 class="hero-title gradient-text">Dokumentasi Sabila</h1>
+            <p class="hero-desc">Panduan lengkap menggunakan Sabila untuk mempermudah workflow pengembangan web lokal Anda.</p>
+            
+            <div class="lang-switch">
+                <a href="docs-id.html" class="active">🇮🇩 Bahasa Indonesia</a>
+                <a href="docs-en.html">🇬🇧 English</a>
+            </div>
+        </header>
+
+        <section class="docs-content">
+            <h2>1. Pengenalan</h2>
+            <p><strong>Sabila</strong> adalah lingkungan pengembangan web lokal pintar (*local web development environment*) yang dirancang khusus untuk membantu pemula, pelajar, dan developer membangun proyek web secara mudah, cepat, dan terotomatisasi menggunakan kecerdasan buatan (AI).</p>
+            <p>Sabila bertindak sebagai alternatif modern untuk XAMPP atau Laragon, namun dengan sentuhan asisten cerdas yang memanjakan developer.</p>
+
+            <div class="alert-box">
+                <strong>Catatan:</strong> Sabila sangat direkomendasikan dipasang di direktori <code>C:\sabila</code> untuk menghindari konflik perizinan Windows Administrator.
+            </div>
+
+            <h2>2. Instalasi & Persiapan</h2>
+            <p>Menginstal Sabila sangatlah mudah. Anda tidak perlu menyalin file secara manual, karena Sabila memiliki Setup Wizard cerdas.</p>
+            <ul>
+                <li><strong>Unduh Aplikasi:</strong> Kunjungi <a href="https://github.com/sabila-hq/sabila-hq.github.io/releases" target="_blank" style="color: var(--primary);">halaman Rilis GitHub</a> dan unduh file <code>.exe</code> terbaru.</li>
+                <li><strong>Jalankan Installer:</strong> Buka file hasil unduhan. Jika muncul peringatan Windows SmartScreen, klik <em>More info</em> > <em>Run anyway</em>.</li>
+                <li><strong>Ikuti Setup Wizard:</strong> Pada saat pertama kali dibuka, Sabila akan meminta Anda memilih folder instalasi dan secara otomatis akan mengunduh komponen server (PHP, Nginx, MySQL, Node.js) dari internet.</li>
+            </ul>
+
+            <h2>3. Fitur Utama</h2>
+            
+            <h3>Asisten Sabila AI 🤖</h3>
+            <p>Di sudut kanan bawah aplikasi, Anda akan menemukan asisten AI. Anda bisa bertanya mengenai error kode, cara menghubungkan database, atau bahkan meminta AI menganalisis Log Server jika Apache/Nginx Anda tiba-tiba mati (crash).</p>
+
+            <h3>Service Dashboard Terpadu 🎛️</h3>
+            <p>Kontrol layanan web server terpopuler (Nginx, Apache, PHP, MySQL, phpMyAdmin) secara modular, responsif, dan rapi dalam satu panel.</p>
+
+            <h3>Local Domain & SSL Dashboard 🔐</h3>
+            <p>Buat virtual host (vhost) lokal dengan ekstensi domain khusus secara otomatis, lengkap dengan sertifikat SSL lokal sehingga website lokal Anda dapat diakses dengan aman (HTTPS).</p>
+            
+            <h3>Manajemen Multi-Version PHP & Node.js 🐘</h3>
+            <p>Setiap proyek kadang butuh versi PHP atau Node yang berbeda. Di Sabila, Anda bisa membuka tab <strong>Alat Pengembang</strong> (Dev Tools) untuk mengganti versi aktif hanya dengan satu klik. Tidak ada lagi pusing mengatur <em>Environment Variables (PATH)</em> Windows secara manual.</p>
+
+            <h3>Secret Manager (Security Shield) 🛡️</h3>
+            <p>Simpan API Key penting (AWS, Stripe, dll) di penyimpanan persisten terenkripsi yang langsung disuntikkan ke dalam memori aplikasi dan terminal, tanpa membocorkannya ke file <code>.env</code> di disk.</p>
+
+            <h3>Task & Cron Job Runner ⏳</h3>
+            <p>Kelola dan jadwalkan tugas (background tasks) lengkap dengan fitur pemantauan status (Sukses/Gagal) dan baca output eksekusi langsung dari dashboard.</p>
+
+            <h3>Auto-Tunneling Cloudflare 🌍</h3>
+            <p>Ingin pamer website lokal Anda ke dosen atau klien? Buka pengaturan proyek, lalu klik <strong>Aktifkan Tunnel</strong>. Sabila akan menggenerasi URL publik aman (contoh: <code>https://proyekmu.trycloudflare.com</code>) yang bisa diakses dari seluruh dunia selama komputer Anda menyala.</p>
+
+            <h3>Mail Catcher Lokal 💌</h3>
+            <p>Bosan menggunakan Gmail asli untuk mengetes fitur Lupa Password? Sabila memiliki <em>Mail Catcher</em> terintegrasi. Semua email yang dikirim oleh aplikasi web Anda (di port SMTP 1025) akan langsung ditangkap dan bisa Anda baca melalui antarmuka Sabila. Tanpa bocor, 100% lokal.</p>
+
+            <h3>Integrasi MCP (Model Context Protocol) 🔌</h3>
+            <p>Integrasikan Sabila dengan agen AI favorit Anda (seperti Claude Desktop) agar AI dapat membaca repositori lokal dan log server Anda dengan aman.</p>
+
+            <h2>4. Troubleshooting (Pertanyaan Umum)</h2>
+            <h3>Port 80 atau 3306 sudah dipakai aplikasi lain?</h3>
+            <p>Jangan panik! Buka tab <strong>Sistem</strong> atau tanya ke Sabila AI. Sabila memiliki tombol <em>Auto-Kill Port</em> yang akan mematikan paksa aplikasi bandel (seperti Skype atau instalasi MySQL lawas) yang memblokir port tersebut dalam 1 detik.</p>
+
+            <h3>Bagaimana cara mengubah Document Root?</h3>
+            <p>Jika Anda terbiasa dengan XAMPP (menggunakan folder <code>htdocs</code>) atau Laragon (menggunakan <code>www</code>), Anda bisa merubahnya dari menu Pengaturan. Sabila akan otomatis memindahkan file dan mengatur ulang konfigurasi Nginx/Apache untuk Anda.</p>
+            <h2>5. Lisensi</h2>
+            <p>Sabila didistribusikan di bawah <strong>BSD 3-Clause License</strong>. Anda bebas menggunakan, memodifikasi, dan mendistribusikan ulang perangkat lunak ini, selama ketentuan lisensi dipenuhi. Lihat file <code>LICENSE</code> di repositori resmi untuk teks lisensi lengkap.</p>
+            <ul>
+                <li>Bebas untuk penggunaan pribadi, akademis, dan komersial.</li>
+                <li>Modifikasi dan distribusi ulang diizinkan dengan menyertakan pemberitahuan hak cipta asli.</li>
+                <li>Nama "Sabila HQ" tidak boleh digunakan untuk mendukung produk turunan tanpa izin tertulis.</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="brand">Sabila.</div>
+            <p class="copyright">© 2026 Sabila HQ. Dirancang dengan ❤️ untuk generasi developer muda Indonesia.</p>
+            <p style="margin-top:0.5rem;font-size:0.8rem;opacity:0.6;">Dilisensikan di bawah <a href="https://opensource.org/licenses/BSD-3-Clause" target="_blank" style="color:var(--primary);">BSD 3-Clause License</a></p>
+        </div>
+    </footer>
+</body>
+</html>
