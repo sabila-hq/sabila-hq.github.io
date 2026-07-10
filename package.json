@@ -1,6 +1,6 @@
 {
   "name": "sabila",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Sabila Local Dev Environment",
   "main": "./out/main/index.js",
   "author": "Sabila HQ",
@@ -37,6 +37,7 @@
     "mkcert": "^3.2.0",
     "mysql2": "^3.22.5",
     "node-cron": "^4.5.0",
+    "node-llama-cpp": "^3.19.0",
     "nodemailer": "^9.0.3",
     "qrcode.react": "^4.2.0",
     "react-markdown": "^10.1.0",
