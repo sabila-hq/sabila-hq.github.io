@@ -9,6 +9,8 @@ export interface AppSettings {
   aiBaseUrl: string;
   aiApiKey: string;
   aiModel: string;
+  aiLocalModelPath: string;
+  aiEnableSkills: boolean;
   language: string;
   docRootName: string;
   theme: 'dark' | 'light' | 'system';
@@ -21,6 +23,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   aiBaseUrl: 'https://api.deepseek.com/v1',
   aiApiKey: '',
   aiModel: 'deepseek-chat',
+  aiLocalModelPath: '',
+  aiEnableSkills: true,
   language: 'id',
   docRootName: 'www',
   theme: 'dark',

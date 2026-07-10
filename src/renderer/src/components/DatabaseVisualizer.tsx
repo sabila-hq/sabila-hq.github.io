@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, createContext, useCont
 import { ReactFlow, Background, Controls, MiniMap, useNodesState, useEdgesState, MarkerType, applyNodeChanges, applyEdgeChanges, Handle, Position, addEdge, ReactFlowProvider, useReactFlow, ConnectionMode, getNodesBounds, getViewportForBounds } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { Download, Camera, CheckSquare, Square, Sparkles, X, ZoomIn, ZoomOut, Maximize } from 'lucide-react';
-import { toPng, toJpeg } from 'html-to-image';
+import { toPng, toJpeg, toSvg } from 'html-to-image';
 
 const ErdColorModeContext = createContext('color');
 
@@ -332,7 +332,7 @@ const DatabaseVisualizerContent: React.FC<DatabaseVisualizerProps> = ({ schema, 
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, type: 'node'|'edge'|'pane', id?: string } | null>(null);
 
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, fitView, getNodes } = useReactFlow();
 
   useEffect(() => {
     if (schema && schema.tables) {
@@ -713,33 +713,144 @@ const DatabaseVisualizerContent: React.FC<DatabaseVisualizerProps> = ({ schema, 
     }
   };
 
-  const handleExport = useCallback(() => {
-    // Force Fit View right before printing
-    const fitViewBtn = reactFlowWrapper.current?.querySelector('.react-flow__controls-fitview');
-    if (fitViewBtn) {
-      (fitViewBtn as HTMLButtonElement).click();
-    }
+  const handleExport = useCallback(async () => {
+    if (!reactFlowWrapper.current) return;
     
-    // Temporarily rename document title to get nice default PDF name
-    const originalTitle = document.title;
-    const date = new Date();
-    const timeStr = `${date.getFullYear()}${(date.getMonth()+1).toString().padStart(2, '0')}${date.getDate().toString().padStart(2, '0')}_${date.getHours().toString().padStart(2, '0')}${date.getMinutes().toString().padStart(2, '0')}`;
-    document.title = `ERD_${schema?.database_name || 'Database'}_${timeStr}`;
+    try {
+      const nodes = getNodes();
+      if (!nodes || nodes.length === 0) throw new Error("Tidak ada node untuk diexport");
 
-    // Add a class to body to trigger specific print CSS
-    document.body.classList.add('print-diagram');
-    
-    // Wait for fitview animation to finish before print
-    setTimeout(() => {
-      window.print();
+      const nodesBounds = getNodesBounds(nodes);
+      const padding = 50;
+      const imageWidth = nodesBounds.width + padding * 2;
+      const imageHeight = nodesBounds.height + padding * 2;
+
+      // Batasi ukuran untuk mencegah canvas crash di memori browser
+      if (imageWidth > 10000 || imageHeight > 10000) {
+         throw new Error("Diagram terlalu besar, memori browser tidak cukup untuk kualitas HD.");
+      }
+
+      const viewport = getViewportForBounds(
+        nodesBounds,
+        imageWidth,
+        imageHeight,
+        0.5,
+        2,
+        padding // argument ke-6 wajib di @xyflow/react versi terbaru
+      );
+
+      const viewportElement = reactFlowWrapper.current.querySelector('.react-flow__viewport') as HTMLElement;
+      if (!viewportElement) throw new Error("Canvas viewport tidak ditemukan");
+
+      // Menggunakan toPng pada elemen viewport secara spesifik menyelesaikan masalah styling yang berantakan di toSvg
+      const dataUrl = await toPng(viewportElement, {
+        backgroundColor: '#0f172a',
+        width: imageWidth,
+        height: imageHeight,
+        style: {
+          width: `${imageWidth}px`,
+          height: `${imageHeight}px`,
+          transform: `translate(${viewport.x}px, ${viewport.y}px) scale(${viewport.zoom})`,
+        },
+      });
+
+      // Buat file HTML dengan gaya yang cocok dengan Sabila
+      const htmlContent = `<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ERD - ${schema?.database_name || 'Database'} (Kualitas HD)</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --surface: rgba(30, 41, 59, 0.7);
+            --border: rgba(255, 255, 255, 0.1);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+        }
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0px, transparent 50%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            font-family: system-ui, -apple-system, sans-serif;
+            color: var(--text-primary);
+        }
+        .container {
+            background: var(--surface);
+            padding: 30px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.05) inset;
+            max-width: 95vw;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: auto;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            background: rgba(0,0,0,0.2);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            text-align: center;
+            margin: 0 0 25px 0;
+            font-size: 1.75rem;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            background: linear-gradient(135deg, #e0e7ff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 25px;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            letter-spacing: 0.025em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Skema Database: ${schema?.database_name || 'Database'}</h1>
+        <img src="${dataUrl}" alt="ERD Diagram" />
+        <div class="footer">
+            Dihasilkan oleh Sabila Local Dev Environment &bull; ${new Date().toLocaleString('id-ID')}
+        </div>
+    </div>
+</body>
+</html>`;
+
+      // Download file HTML
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ERD_${schema?.database_name || 'Database'}_HD.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
       
-      // Revert everything after print dialog opens
-      setTimeout(() => {
-        document.title = originalTitle;
-        document.body.classList.remove('print-diagram');
-      }, 500);
-    }, 500);
-  }, [schema]);
+    } catch (error) {
+      console.error('Gagal export HD HTML:', error);
+      alert('Gagal menghasilkan export HD. Silakan coba lagi. Error: ' + (error as Error).message);
+    }
+  }, [schema, getNodes]);
 
   if (loading) {
     return <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'var(--text-muted)' }}>Memuat skema...</div>;
@@ -788,7 +899,7 @@ const DatabaseVisualizerContent: React.FC<DatabaseVisualizerProps> = ({ schema, 
             <Sparkles size={16} /> AI Generator
           </button>
           <button className="btn-primary" onClick={handleExport} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Camera size={16} /> Export (PDF)
+            <Camera size={16} /> Export (HTML HD)
           </button>
         </div>
       </div>

@@ -340,6 +340,11 @@ p {
   border-top-right-radius: 2rem;
   border-bottom-right-radius: 2rem;
   box-shadow: 2px 0 20px rgba(0, 0, 0, 0.03);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.collapsed {
+  width: 80px;
 }
 
 .main-content {
@@ -669,3 +674,11 @@ p {
     display: none !important;
   }
 }
+
+/* === JSON Syntax Highlight === */
+.json-string { color: var(--primary-fixed-dim); }
+.json-number { color: #f97316; }
+.json-boolean { color: #c084fc; font-weight: bold; }
+.json-null { color: #f43f5e; font-weight: bold; }
+.json-key { color: #7dd3fc; font-weight: 500; }
+

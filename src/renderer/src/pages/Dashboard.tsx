@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Play, Square, RotateCw, Terminal, Download, PlayCircle, StopCircle, Zap, ChevronUp, ChevronDown, ExternalLink, Database, Server } from 'lucide-react';
+import { Play, Square, RotateCw, Terminal, Download, PlayCircle, StopCircle, Zap, ChevronUp, ChevronDown, ExternalLink, Database, Server, Settings } from 'lucide-react';
 import { translations } from '../translations';
 import { ServiceMenu } from '../components/ServiceMenu';
 import { ToolMenu } from '../components/ToolMenu';
@@ -210,7 +210,8 @@ export const Dashboard: React.FC<{ lang?: string }> = ({ lang = 'en' }) => {
     // @ts-ignore
     const res = await window.api.startService(id);
     if (res && res.success === false) {
-      if (res.error.toLowerCase().includes('in use') || res.error.includes('EADDRINUSE')) {
+      const errStr = res.error.toLowerCase();
+      if (errStr.includes('in use') || errStr.includes('eaddrinuse') || errStr.includes('10013') || errStr.includes('forbidden') || errStr.includes('bind() failed')) {
         setPortConflictModal({ show: true, serviceId: id, port: svc ? svc.port : 0 });
       } else {
         alert(`Gagal menjalankan ${id}: ${res.error}`);
@@ -328,14 +329,14 @@ export const Dashboard: React.FC<{ lang?: string }> = ({ lang = 'en' }) => {
   };
 
   const handleRescueConfirm = async () => {
-    if (!window.confirm(`Perhatian: Anda akan menimpa file inti MySQL XAMPP Anda dengan file dari folder backup.\n\nPastikan XAMPP sedang dalam keadaan MATI. Lanjutkan?`)) return;
+    if (!window.confirm(t.confirm_fix_xampp)) return;
 
     setIsRescuing(true);
     try {
       // @ts-ignore
       const res = await window.api.fixXamppMysql(rescuePath);
       if (res.success) {
-        if (window.confirm('Perbaikan XAMPP berhasil dilakukan! 🎉\n\nApakah Anda ingin membuka xampp-control.exe sekarang?\n(Layanan Sabila akan dihentikan otomatis agar tidak ada konflik port)')) {
+        if (window.confirm(t.success_fix_xampp)) {
           // @ts-ignore
           await window.api.openXamppControl(rescuePath);
         }
@@ -409,17 +410,13 @@ export const Dashboard: React.FC<{ lang?: string }> = ({ lang = 'en' }) => {
             marginBottom: '0.5rem',
           }}>
             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: runningCount > 0 ? '#10b981' : 'var(--outline-variant)' }}></span>
-            {runningCount > 0 ? (lang === 'id' ? 'Sistem Aktif' : 'System Healthy') : (lang === 'id' ? 'Sistem Siaga' : 'System Standby')}
+            {runningCount > 0 ? t.sys_active : t.sys_standby}
           </div>
           <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.15rem', fontWeight: 700, lineHeight: 1.3, color: 'var(--on-surface)', marginBottom: '0.25rem' }}>
-            {lang === 'id'
-              ? `Anda punya ${installedCount} layanan siap, ${runningCount} sedang aktif.`
-              : `You have ${installedCount} services ready, ${runningCount} active.`}
+            {t.sys_status_count?.replace('{installed}', installedCount.toString()).replace('{running}', runningCount.toString())}
           </h3>
           <p style={{ fontFamily: 'var(--font-body)', fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0 }}>
-            {runningCount > 0
-              ? (lang === 'id' ? 'Semuanya berjalan lancar.' : 'Everything is running smoothly.')
-              : (lang === 'id' ? 'Semua terkonfigurasi dan menunggu perintah Anda.' : 'Everything is configured and waiting for your command.')}
+            {runningCount > 0 ? t.sys_status_smooth : t.sys_status_wait}
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -427,15 +424,15 @@ export const Dashboard: React.FC<{ lang?: string }> = ({ lang = 'en' }) => {
             className="btn-secondary"
             onClick={handleRescueDb}
             style={{ padding: '0.5rem 0.75rem', fontSize: '0.85rem', fontWeight: 600, background: 'var(--amber-warning)', color: '#92400e', border: '1px solid rgba(245,158,11,0.3)', borderRadius: '12px' }}
-            title="Perbaiki MySQL XAMPP yang rusak (Restore Backup)"
+            title={t.fix_xampp_desc}
           >
-            <Database size={14} /> Perbaiki XAMPP
+            <Database size={14} /> {t.fix_xampp}
           </button>
           <button
             className="btn-primary"
             onClick={() => {
               if (runningCount > 0) {
-                if (window.confirm('Tindakan ini akan menghentikan semua layanan. Lanjutkan?')) handleStopAll();
+                if (window.confirm(t.confirm_stop_all)) handleStopAll();
               } else {
                 handleStartAll();
               }
@@ -507,14 +504,50 @@ export const Dashboard: React.FC<{ lang?: string }> = ({ lang = 'en' }) => {
               }}>
                 <span className={`status-orb ${svc.type === 'tool' && svc.isInstalled ? 'running' : svc.status === 'running' ? 'running' : 'stopped'}`}></span>
                 <span style={{ fontSize: '0.65rem', fontWeight: 600, color: svc.status === 'running' ? '#10b981' : 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  {svc.status === 'running' ? (lang === 'id' ? 'Aktif' : 'Running') : (svc.type === 'tool' && svc.isInstalled ? (lang === 'id' ? 'Terpasang' : 'Installed') : (lang === 'id' ? 'Mati' : 'Stopped'))}
+                  {svc.status === 'running' ? t.status_active : (svc.type === 'tool' && svc.isInstalled ? t.status_installed : t.status_stopped)}
                 </span>
               </div>
             </div>
             {/* Name + Info */}
             <h5 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', fontWeight: 700, color: 'var(--on-surface)', margin: '0 0 0.35rem', textTransform: 'capitalize', letterSpacing: '-0.01em' }}>{svc.name}</h5>
-            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', flex: 1, fontFamily: 'var(--font-body)', display: 'flex', flexDirection: 'column', gap: '0.2rem' }}>
-              {svc.type === 'service' && <div>Port: <strong style={{ color: 'var(--text-primary)' }}>{svc.port}</strong></div>}
+            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', flex: 1, fontFamily: 'var(--font-body)', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+              {svc.type === 'service' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '0.8rem' }}>Port:</span>
+                  <button 
+                    onClick={() => setPortConflictModal({ show: true, serviceId: svc.id, port: svc.port })}
+                    style={{ 
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                      background: 'var(--surface-container-high)', 
+                      border: '1px solid var(--outline-variant)', 
+                      color: 'var(--text-primary)', 
+                      fontWeight: '600', 
+                      padding: '2px 8px', 
+                      borderRadius: '12px', 
+                      cursor: 'pointer',
+                      fontSize: '0.75rem',
+                      transition: 'all 0.2s ease',
+                      boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+                    }}
+                    title="Pengaturan Port (Ubah / Paksa Tutup)"
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'var(--primary-container)';
+                      e.currentTarget.style.color = 'var(--on-primary-container)';
+                      e.currentTarget.style.borderColor = 'var(--primary)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'var(--surface-container-high)';
+                      e.currentTarget.style.color = 'var(--text-primary)';
+                      e.currentTarget.style.borderColor = 'var(--outline-variant)';
+                    }}
+                  >
+                    {svc.port}
+                    <Settings size={12} style={{ opacity: 0.7 }} />
+                  </button>
+                </div>
+              )}
               {svc.activeVersion ? (
                 <div>{svc.activeVersion}</div>
               ) : (

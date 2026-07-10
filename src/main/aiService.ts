@@ -11,6 +11,7 @@ import fs from 'fs';
 import path from 'path';
 import { vhostManager } from './vhostManager';
 import { getBaseDir } from './env';
+import type { LlamaModel, LlamaContext, LlamaChatSession } from 'node-llama-cpp';
 
 // Base system prompt
 let SYSTEM_PROMPT = `You are Sabila Assistant, a powerful AI that controls a local development environment on Windows.
@@ -47,7 +48,7 @@ try {
     const prdTemplate = fs.readFileSync(prdTemplatePath, 'utf8');
     SYSTEM_PROMPT += `\n\n=== PRD TEMPLATE PATTERN ===\n${prdTemplate}\n============================\n`;
   }
-} catch (e) {
+} catch (e: any) {
   // Ignore
 }
 
@@ -376,6 +377,11 @@ const TOOLS = [
 ];
 
 export class AiService {
+  private llamaSession: LlamaChatSession | null = null;
+  private llamaModel: LlamaModel | null = null;
+  private llamaContext: LlamaContext | null = null;
+  private currentLlamaPath: string = '';
+  private currentConversationId: number | null = null;
 
   private async executeTool(functionName: string, args: any): Promise<string> {
     try {
@@ -465,7 +471,7 @@ export class AiService {
                     context.files[file] = fs.readFileSync(filePath, 'utf8');
                   }
                 }
-              } catch (e) {}
+              } catch (e: any) {}
             }
             context.globalSettings = store.getAll();
             return JSON.stringify(context);
@@ -487,7 +493,7 @@ export class AiService {
             try {
               const composer = JSON.parse(fs.readFileSync(composerPath, 'utf8'));
               context.composerDependencies = composer.require;
-            } catch (e) {}
+            } catch (e: any) {}
           }
 
           // Package.json
@@ -496,7 +502,7 @@ export class AiService {
             try {
               const pkg = JSON.parse(fs.readFileSync(packagePath, 'utf8'));
               context.nodeDependencies = pkg.dependencies;
-            } catch (e) {}
+            } catch (e: any) {}
           }
 
           // .env
@@ -512,7 +518,7 @@ export class AiService {
                   name: dbDatabase[1].trim()
                 };
               }
-            } catch (e) {}
+            } catch (e: any) {}
           }
 
           return JSON.stringify(context);
@@ -738,7 +744,7 @@ export class AiService {
     });
   }
 
-  public async sendMessage(conversationId: number, userContent: string): Promise<string> {
+  public async sendMessage(conversationId: number, userContent: string, onProgress?: (token: string) => void): Promise<string> {
     const settings = store.getAll();
 
     const provider = settings.aiProvider || 'deepseek';
@@ -746,23 +752,17 @@ export class AiService {
     let apiKey = settings.aiApiKey || '';
     const model = settings.aiModel || 'deepseek-chat';
 
-    if (!apiKey) {
+    if (provider !== 'local' && !apiKey) {
       throw new Error('API Key belum dikonfigurasi. Silakan atur di halaman Settings.');
     }
 
-    // Decrypt API Key if possible
-    if (safeStorage.isEncryptionAvailable()) {
+    if (provider !== 'local' && safeStorage.isEncryptionAvailable()) {
       try {
         const buffer = Buffer.from(apiKey, 'base64');
-        apiKey = safeStorage.decryptString(buffer);
-      } catch (err) {
+        apiKey = safeStorage.decryptString(buffer).trim();
+      } catch (err: any) {
         logger.error(`Failed to decrypt API key: ${err}`);
       }
-    }
-
-    let endpoint = baseUrl;
-    if (!endpoint.endsWith('/chat/completions') && !endpoint.endsWith('/messages') && !endpoint.endsWith('/generateContent')) {
-      endpoint = endpoint.endsWith('/') ? `${endpoint}chat/completions` : `${endpoint}/chat/completions`;
     }
 
     // Save user message to DB
@@ -774,6 +774,16 @@ export class AiService {
       { role: 'system', content: SYSTEM_PROMPT },
       ...dbMessages
     ];
+
+    if (provider === 'local') {
+      logger.info(`Sending AI request to local LLaMA model (${dbMessages.length} messages in context)`);
+      return await this.callLocalApi(settings.aiLocalModelPath || '', apiMessages, conversationId, onProgress);
+    }
+
+    let endpoint = baseUrl;
+    if (!endpoint.endsWith('/chat/completions') && !endpoint.endsWith('/messages') && !endpoint.endsWith('/generateContent')) {
+      endpoint = endpoint.endsWith('/') ? `${endpoint}chat/completions` : `${endpoint}/chat/completions`;
+    }
 
     logger.info(`Sending AI request to ${endpoint} with model ${model} (${dbMessages.length} messages in context)`);
 
@@ -837,6 +847,66 @@ export class AiService {
 
     } catch (error: any) {
       logger.error(`AI Request failed: ${error.message}`);
+      throw error;
+    }
+  }
+  private async callLocalApi(modelPath: string, messages: any[], conversationId: number, onProgress?: (token: string) => void): Promise<string> {
+    if (!fs.existsSync(modelPath)) {
+      throw new Error(`Model file not found: ${modelPath}`);
+    }
+
+    try {
+      // Use eval to prevent bundler from transforming import() to require()
+      const { getLlama, LlamaChatSession: DynamicSession } = await eval(`import('node-llama-cpp')`);
+      const llama = await getLlama();
+      
+      if (!this.llamaModel || this.currentLlamaPath !== modelPath) {
+        if (this.llamaContext) await this.llamaContext.dispose();
+        if (this.llamaModel) await this.llamaModel.dispose();
+        
+        this.llamaModel = await llama.loadModel({ modelPath });
+        this.currentLlamaPath = modelPath;
+        this.llamaContext = null;
+        this.llamaSession = null;
+      }
+      
+      if (!this.llamaContext) {
+        this.llamaContext = await this.llamaContext || await this.llamaModel!.createContext();
+      }
+
+      if (!this.llamaSession || this.currentConversationId !== conversationId) {
+        this.llamaSession = new DynamicSession({
+          contextSequence: this.llamaContext!.getSequence()
+        });
+        this.currentConversationId = conversationId;
+      }
+
+      const lastUserMsg = messages[messages.length - 1].content;
+      
+      let generated = '';
+      let lastEmitTime = 0;
+      
+      const response = await this.llamaSession!.prompt(lastUserMsg, {
+        maxTokens: 1024,
+        onToken: (tokens) => {
+          try {
+            if (this.llamaModel) {
+               const tokenText = this.llamaModel.detokenize(tokens);
+               generated += tokenText;
+               const now = Date.now();
+               if (now - lastEmitTime > 100) {
+                 if (onProgress) onProgress(generated);
+                 lastEmitTime = now;
+               }
+            }
+          } catch (e) {}
+        }
+      });
+      
+      addMessage(conversationId, 'assistant', response);
+      return response;
+    } catch (error: any) {
+      logger.error(`Local LLaMA Error: ${error.message}`);
       throw error;
     }
   }

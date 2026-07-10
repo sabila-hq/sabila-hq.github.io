@@ -90,8 +90,8 @@ export const PhpExtensionsPage: React.FC<{ lang?: string, embedded?: boolean }> 
       {!embedded && (
         <div className="page-header">
           <div>
-            <h1>PHP Extensions</h1>
-            <p className="subtitle">Manage PHP extensions in php.ini</p>
+            <h1>{t.php_ext_title}</h1>
+            <p className="subtitle">{t.php_ext_desc}</p>
           </div>
         </div>
       )}
@@ -100,22 +100,22 @@ export const PhpExtensionsPage: React.FC<{ lang?: string, embedded?: boolean }> 
         <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <Settings2 className="icon-blue" />
-            <h2>PHP Extensions</h2>
+            <h2>{t.php_ext_title}</h2>
           </div>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
               <Search size={16} style={{ position: 'absolute', left: '0.75rem', color: 'var(--text-secondary)' }} />
               <input 
                 type="text" 
-                placeholder="Cari ekstensi..." 
+                placeholder={t.php_ext_search} 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 className="input-glass"
                 style={{ padding: '0.4rem 0.5rem 0.4rem 2.25rem', width: '220px', fontSize: '0.85rem' }}
               />
             </div>
-            <button className="btn btn-primary" onClick={enablePopular} disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} title="Aktifkan Ekstensi Populer">
-              <Zap size={14} /> Aktifkan Populer
+            <button className="btn btn-primary" onClick={enablePopular} disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} title={t.php_ext_enable_popular_title}>
+              <Zap size={14} /> {t.php_ext_enable_popular}
             </button>
             <button className="btn btn-secondary btn-icon" onClick={loadExtensions} title="Refresh">
               <RefreshCw size={16} className={loading ? 'spinning' : ''} />
@@ -130,12 +130,12 @@ export const PhpExtensionsPage: React.FC<{ lang?: string, embedded?: boolean }> 
             </div>
           ) : filteredExtensions.length === 0 ? (
             <div className="empty-state">
-              <p>Tidak ada ekstensi PHP yang ditemukan.</p>
+              <p>{t.php_ext_not_found}</p>
             </div>
           ) : (
             <div className="extensions-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
               {filteredExtensions.map(ext => {
-                const desc = extensionDescriptions[ext.name] || 'Ekstensi tambahan PHP';
+                const desc = (t as any)[`php_ext_desc_${ext.name}`] || t.php_ext_additional;
                 return (
                   <div key={ext.name} className="extension-card" style={{ 
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center', 
@@ -152,7 +152,7 @@ export const PhpExtensionsPage: React.FC<{ lang?: string, embedded?: boolean }> 
                       className="btn-icon" 
                       onClick={() => toggleExtension(ext.name, !ext.enabled)}
                       style={{ color: ext.enabled ? 'var(--status-running)' : 'var(--text-secondary)', transition: 'color 0.2s' }}
-                      title={ext.enabled ? 'Nonaktifkan' : 'Aktifkan'}
+                      title={ext.enabled ? t.php_ext_disable : t.php_ext_enable}
                     >
                       {ext.enabled ? <ToggleRight size={28} /> : <ToggleLeft size={28} />}
                     </button>

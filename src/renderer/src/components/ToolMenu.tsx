@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { Settings, ChevronDown, ChevronUp, Folder, Plus, Minus, FileText } from 'lucide-react';
+import { translations } from '../translations';
 
 interface ToolMenuProps {
   toolId: string;
@@ -10,9 +11,11 @@ interface ToolMenuProps {
   onOpenFolder?: () => void;
   onRefresh: () => void;
   onAddVersion?: () => void;
+  lang?: string;
 }
 
-export function ToolMenu({ toolId, activeVersion, isDashboardItem, onToggleDashboard, onOpenFolder, onRefresh, onAddVersion }: ToolMenuProps) {
+export function ToolMenu({ toolId, activeVersion, isDashboardItem, onToggleDashboard, onOpenFolder, onRefresh, onAddVersion , lang = 'en'}: ToolMenuProps) {
+  const t = translations[lang as keyof typeof translations] || translations.en;
   const [isOpen, setIsOpen] = useState(false);
   const [versions, setVersions] = useState<string[]>([]);
   const [expandedSection, setExpandedSection] = useState<string | null>(null);
@@ -130,9 +133,9 @@ export function ToolMenu({ toolId, activeVersion, isDashboardItem, onToggleDashb
           justifyContent: 'center', fontSize: '0.75rem', padding: '0.4rem', 
           textAlign: 'center', lineHeight: '1.2', width: '100%'
         }}
-        title="Opsi Lanjutan"
+        title={t.toolmenu_options_title || "Opsi Lanjutan"}
       >
-        <Settings size={14} style={{ marginBottom: '2px' }} /> Opsi
+        <Settings size={14} style={{ marginBottom: '2px' }} /> {t.toolmenu_options || "Opsi"}
       </button>
 
       {isOpen && createPortal(
@@ -152,7 +155,7 @@ export function ToolMenu({ toolId, activeVersion, isDashboardItem, onToggleDashb
               onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-accent)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
-              <span>{isDashboardItem ? <Minus size={14}/> : <Plus size={14}/>} {isDashboardItem ? 'Hapus dari Dashboard' : 'Tambah ke Dashboard'}</span>
+              <span>{isDashboardItem ? <Minus size={14}/> : <Plus size={14}/>} {isDashboardItem ? (t.toolmenu_remove_dash || 'Hapus dari Dashboard') : (t.toolmenu_add_dash || 'Tambah ke Dashboard')}</span>
             </button>
           )}
 
@@ -163,7 +166,7 @@ export function ToolMenu({ toolId, activeVersion, isDashboardItem, onToggleDashb
               onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-accent)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
-              <span><Folder size={14}/> Buka Direktori</span>
+              <span><Folder size={14}/> {t.toolmenu_open_dir || 'Buka Direktori'}</span>
             </button>
           )}
 
@@ -180,7 +183,7 @@ export function ToolMenu({ toolId, activeVersion, isDashboardItem, onToggleDashb
               onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-accent)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
-              <span><Settings size={14}/> PHP Config</span>
+              <span><Settings size={14}/> {t.toolmenu_php_config || 'PHP Config'}</span>
             </button>
           )}
 
@@ -195,7 +198,7 @@ export function ToolMenu({ toolId, activeVersion, isDashboardItem, onToggleDashb
               onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-accent)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
-              <span><FileText size={14}/> Edit Config (.ini/.conf)</span>
+              <span><FileText size={14}/> {t.toolmenu_edit_config || 'Edit Config (.ini/.conf)'}</span>
             </button>
           )}
 
@@ -209,7 +212,7 @@ export function ToolMenu({ toolId, activeVersion, isDashboardItem, onToggleDashb
               onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-accent)')}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
-              <span>⬆️ Update Versi</span>
+              <span>⬆️ {t.toolmenu_update_version || 'Update Versi'}</span>
             </button>
           ) : (
             <>
@@ -219,7 +222,7 @@ export function ToolMenu({ toolId, activeVersion, isDashboardItem, onToggleDashb
                 onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-accent)')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
               >
-                <span>📦 Pilih Versi</span>
+                <span>📦 {t.toolmenu_select_version || 'Pilih Versi'}</span>
                 {expandedSection === 'version' ? <ChevronUp size={14} color="var(--text-secondary)" /> : <ChevronDown size={14} color="var(--text-secondary)" />}
               </button>
               {expandedSection === 'version' && (
@@ -257,9 +260,7 @@ export function ToolMenu({ toolId, activeVersion, isDashboardItem, onToggleDashb
                         cursor: 'pointer',
                         fontWeight: 600
                       }}
-                    >
-                      + Tambah Versi
-                    </button>
+                    > + {t.toolmenu_add_version || 'Tambah Versi'} </button>
                   </div>
                 </div>
               )}

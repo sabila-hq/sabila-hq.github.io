@@ -15,6 +15,8 @@ export const Settings: React.FC<SettingsProps> = ({ onSettingsChange, lang = 'en
     aiBaseUrl: 'https://api.deepseek.com/v1',
     aiApiKey: '',
     aiModel: 'deepseek-chat',
+    aiLocalModelPath: '',
+    aiEnableSkills: true,
     language: 'id',
     docRootName: 'www',
     theme: 'dark'
@@ -30,19 +32,19 @@ export const Settings: React.FC<SettingsProps> = ({ onSettingsChange, lang = 'en
 
   useEffect(() => {
     // @ts-ignore
-    window.api.getSettings().then((data) => {
+    (window as any).api.getSettings().then((data) => {
       if (data) {
         setSettings((prev: any) => ({ ...prev, ...data }));
       }
     });
 
     // @ts-ignore
-    window.api.getDashboardItems().then((items: string[]) => {
+    (window as any).api.getDashboardItems().then((items: string[]) => {
       setDashboardItems(items);
     });
 
     // @ts-ignore
-    window.api.getServices().then((statuses: any) => {
+    (window as any).api.getServices().then((statuses: any) => {
       setServiceStatuses(statuses);
       const newPorts: Record<string, string> = {};
       const newSslPorts: Record<string, string> = {};
@@ -83,7 +85,7 @@ export const Settings: React.FC<SettingsProps> = ({ onSettingsChange, lang = 'en
         onSettingsChange(newSettings);
       }
       // @ts-ignore
-      window.api.saveSettings(newSettings);
+      (window as any).api.saveSettings(newSettings);
     }
   };
 
@@ -98,23 +100,23 @@ export const Settings: React.FC<SettingsProps> = ({ onSettingsChange, lang = 'en
 
     try {
       // @ts-ignore
-      const res = await window.api.renameDocRoot(newName);
+      const res = await (window as any).api.renameDocRoot(newName);
       if (res.success) {
         // @ts-ignore
-        await window.api.saveSettings(newSettings);
+        await (window as any).api.saveSettings(newSettings);
         if (onSettingsChange) onSettingsChange(newSettings);
         // @ts-ignore
-        if (window.api.showAlert) window.api.showAlert(lang === 'id' ? `Berhasil mengganti nama folder menjadi ${newName}` : `Successfully renamed folder to ${newName}`);
+        if ((window as any).api.showAlert) (window as any).api.showAlert(lang === 'id' ? `Berhasil mengganti nama folder menjadi ${newName}` : `Successfully renamed folder to ${newName}`);
       } else {
         // Revert UI on failure
         setSettings({ ...settings, docRootName: oldName });
         // @ts-ignore
-        if (window.api.showAlert) window.api.showAlert(lang === 'id' ? `Gagal mengganti nama folder: ${res.error}` : `Failed to rename folder: ${res.error}`);
+        if ((window as any).api.showAlert) (window as any).api.showAlert(lang === 'id' ? `Gagal mengganti nama folder: ${res.error}` : `Failed to rename folder: ${res.error}`);
       }
     } catch (error: any) {
       setSettings({ ...settings, docRootName: oldName });
       // @ts-ignore
-      if (window.api.showAlert) window.api.showAlert(`Error: ${error.message}`);
+      if ((window as any).api.showAlert) (window as any).api.showAlert(`Error: ${error.message}`);
     }
     setIsRenamingDocRoot(false);
   };
@@ -122,12 +124,12 @@ export const Settings: React.FC<SettingsProps> = ({ onSettingsChange, lang = 'en
   const handleSave = async () => {
     setIsSaving(true);
     // @ts-ignore
-    await window.api.saveSettings(settings);
+    await (window as any).api.saveSettings(settings);
     if (onSettingsChange) {
       onSettingsChange(settings);
     }
     // @ts-ignore
-    if (window.api.showAlert) window.api.showAlert(lang === 'id' ? 'Pengaturan berhasil disimpan!' : 'Settings saved successfully!');
+    if ((window as any).api.showAlert) (window as any).api.showAlert(lang === 'id' ? 'Pengaturan berhasil disimpan!' : 'Settings saved successfully!');
     else alert(lang === 'id' ? 'Pengaturan berhasil disimpan!' : 'Settings saved successfully!');
     setTimeout(() => setIsSaving(false), 1500);
   };
@@ -135,29 +137,58 @@ export const Settings: React.FC<SettingsProps> = ({ onSettingsChange, lang = 'en
   const [connectionStatus, setConnectionStatus] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
 
   const handleTestConnection = async () => {
+    if (settings.aiProvider === 'local') {
+      if (!settings.aiLocalModelPath) {
+        // @ts-ignore
+        if ((window as any).api.showAlert) (window as any).api.showAlert(lang === 'id' ? 'Path model belum dipilih' : 'Model path is empty');
+        else alert(lang === 'id' ? 'Path model belum dipilih' : 'Model path is empty');
+        return;
+      }
+      setConnectionStatus('testing');
+      try {
+        // @ts-ignore
+        const res = await (window as any).api.testLocalAiConnection(settings.aiLocalModelPath);
+        if (res.ok) {
+          setConnectionStatus('success');
+          // @ts-ignore
+          if ((window as any).api.showAlert) (window as any).api.showAlert(lang === 'id' ? 'File Valid: File GGUF ditemukan dan formatnya sesuai.' : 'Valid File: GGUF file found and format is correct.');
+        } else {
+          setConnectionStatus('failed');
+          // @ts-ignore
+          if ((window as any).api.showAlert) (window as any).api.showAlert(lang === 'id' ? `File Tidak Valid: ${res.error}` : `Invalid File: ${res.error}`);
+        }
+      } catch (e: any) {
+        setConnectionStatus('failed');
+        // @ts-ignore
+        if ((window as any).api.showAlert) (window as any).api.showAlert(`Error: ${e.message}`);
+      }
+      setTimeout(() => setConnectionStatus('idle'), 4000);
+      return;
+    }
+
     if (!settings.aiBaseUrl || !settings.aiApiKey) {
       // @ts-ignore
-      if (window.api.showAlert) window.api.showAlert(lang === 'id' ? 'Base URL dan API Key harus diisi' : 'Base URL and API Key are required');
+      if ((window as any).api.showAlert) (window as any).api.showAlert(lang === 'id' ? 'Base URL dan API Key harus diisi' : 'Base URL and API Key are required');
       else alert(lang === 'id' ? 'Base URL dan API Key harus diisi' : 'Base URL and API Key are required');
       return;
     }
     setConnectionStatus('testing');
     try {
       // @ts-ignore
-      const res = await window.api.testAiConnection(settings.aiBaseUrl, settings.aiApiKey);
+      const res = await (window as any).api.testAiConnection(settings.aiBaseUrl, settings.aiApiKey);
       if (res.ok) {
         setConnectionStatus('success');
         // @ts-ignore
-        if (window.api.showAlert) window.api.showAlert(lang === 'id' ? 'Koneksi Berhasil: API Key valid dan terhubung ke server.' : 'Connection Successful: API Key is valid and connected to server.');
+        if ((window as any).api.showAlert) (window as any).api.showAlert(lang === 'id' ? 'Koneksi Berhasil: API Key valid dan terhubung ke server.' : 'Connection Successful: API Key is valid and connected to server.');
       } else {
         setConnectionStatus('failed');
         // @ts-ignore
-        if (window.api.showAlert) window.api.showAlert(lang === 'id' ? `Koneksi Gagal: Server mengembalikan status ${res.status}. Pastikan API Key valid.` : `Connection Failed: Server returned status ${res.status}. Make sure API Key is valid.`);
+        if ((window as any).api.showAlert) (window as any).api.showAlert(lang === 'id' ? `Koneksi Gagal: Server mengembalikan status ${res.status}. Pastikan API Key valid.` : `Connection Failed: Server returned status ${res.status}. Make sure API Key is valid.`);
       }
     } catch (e: any) {
       setConnectionStatus('failed');
       // @ts-ignore
-      if (window.api.showAlert) window.api.showAlert(lang === 'id' ? `Koneksi Error: ${e.message}` : `Connection Error: ${e.message}`);
+      if ((window as any).api.showAlert) (window as any).api.showAlert(lang === 'id' ? `Koneksi Error: ${e.message}` : `Connection Error: ${e.message}`);
     }
     setTimeout(() => setConnectionStatus('idle'), 4000);
   };
@@ -208,6 +239,7 @@ export const Settings: React.FC<SettingsProps> = ({ onSettingsChange, lang = 'en
                   if (val === 'moonshot') { newBaseUrl = 'https://api.moonshot.cn/v1'; newModel = 'moonshot-v1-8k'; }
                   if (val === 'qwen') { newBaseUrl = 'https://dashscope.aliyuncs.com/compatible-mode/v1'; newModel = 'qwen-plus'; }
                   if (val === 'anthropic') { newBaseUrl = 'https://api.anthropic.com/v1'; newModel = 'claude-3-5-sonnet-20241022'; }
+                  if (val === 'local') { newBaseUrl = ''; newModel = 'local-gguf'; }
                   
                   const newSettings = { ...settings, aiProvider: val, aiBaseUrl: newBaseUrl, aiModel: newModel };
                   setSettings(newSettings);
@@ -224,32 +256,100 @@ export const Settings: React.FC<SettingsProps> = ({ onSettingsChange, lang = 'en
                 <option value="qwen">Qwen (DashScope)</option>
                 <option value="anthropic">Claude (Anthropic)</option>
                 <option value="custom">Custom Endpoint</option>
+                <option value="local">Lokal (GGUF Model)</option>
               </select>
             </div>
 
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>{t.base_url}</label>
-              <input type="text" name="aiBaseUrl" className="input-glass" value={settings.aiBaseUrl} onChange={handleChange} />
-            </div>
+            {settings.aiProvider !== 'local' && (
+              <>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>{t.base_url}</label>
+                  <input type="text" name="aiBaseUrl" className="input-glass" value={settings.aiBaseUrl} onChange={handleChange} />
+                </div>
 
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>{t.api_key}</label>
-              <input type="password" name="aiApiKey" className="input-glass" placeholder="sk-..." value={settings.aiApiKey} onChange={handleChange} />
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem', fontFamily: 'var(--font-body)' }}>{t.api_key_desc}</p>
-            </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>{t.api_key}</label>
+                  <input type="password" name="aiApiKey" className="input-glass" placeholder="sk-..." value={settings.aiApiKey} onChange={handleChange} />
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem', fontFamily: 'var(--font-body)' }}>{t.api_key_desc}</p>
+                </div>
 
-            <div>
-              <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>{t.default_model}</label>
-              <input type="text" name="aiModel" className="input-glass" value={settings.aiModel} onChange={handleChange} />
-            </div>
-            
-            <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <button className="btn-secondary" onClick={handleTestConnection} disabled={connectionStatus === 'testing'}>
-                {connectionStatus === 'testing' ? (lang === 'id' ? 'Menguji...' : 'Testing...') : t.test_connection}
-              </button>
-              {connectionStatus === 'success' && <span style={{ color: 'var(--status-running)', fontSize: '0.85rem' }}>✔️ {lang === 'id' ? 'Koneksi Berhasil' : 'Connection Successful'}</span>}
-              {connectionStatus === 'failed' && <span style={{ color: 'var(--status-stopped)', fontSize: '0.85rem' }}>❌ {lang === 'id' ? 'Koneksi Gagal' : 'Connection Failed'}</span>}
-            </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>{t.default_model}</label>
+                  <input type="text" name="aiModel" className="input-glass" value={settings.aiModel} onChange={handleChange} />
+                </div>
+                
+                <div style={{ marginTop: '0.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <button className="btn-secondary" onClick={handleTestConnection} disabled={connectionStatus === 'testing'}>
+                    {connectionStatus === 'testing' ? (lang === 'id' ? 'Menguji...' : 'Testing...') : t.test_connection}
+                  </button>
+                  {connectionStatus === 'success' && <span style={{ color: 'var(--status-running)', fontSize: '0.85rem' }}>✔️ {lang === 'id' ? 'Koneksi Berhasil' : 'Connection Successful'}</span>}
+                  {connectionStatus === 'failed' && <span style={{ color: 'var(--status-stopped)', fontSize: '0.85rem' }}>❌ {lang === 'id' ? 'Koneksi Gagal' : 'Connection Failed'}</span>}
+                </div>
+              </>
+            )}
+
+            {settings.aiProvider === 'local' && (
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>File Model (.gguf)</label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input 
+                    type="text" 
+                    name="aiLocalModelPath" 
+                    className="input-glass" 
+                    value={settings.aiLocalModelPath || ''} 
+                    onChange={handleChange} 
+                    placeholder="Lokasi file .gguf" 
+                    style={{ flex: 1 }}
+                  />
+                  <button 
+                    className="btn-secondary" 
+                    onClick={async () => {
+                      // @ts-ignore
+                      const path = await (window as any).api.selectLocalModel();
+                      if (path) {
+                        const newSettings = { ...settings, aiLocalModelPath: path };
+                        setSettings(newSettings);
+                      }
+                    }}
+                  >
+                    <FolderOpen size={16} /> Browse
+                  </button>
+                </div>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.5rem', fontFamily: 'var(--font-body)' }}>
+                  Pilih file model Llama atau GGUF lainnya yang telah diunduh di komputer Anda.
+                </p>
+                <div style={{ marginTop: '0.75rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                  <button className="btn-secondary" onClick={handleTestConnection} disabled={connectionStatus === 'testing'}>
+                    {connectionStatus === 'testing' ? (lang === 'id' ? 'Memeriksa...' : 'Checking...') : (lang === 'id' ? 'Tes File Model' : 'Test Model File')}
+                  </button>
+                  {connectionStatus === 'success' && <span style={{ color: 'var(--status-running)', fontSize: '0.85rem' }}>✔️ {lang === 'id' ? 'File Valid & Ditemukan' : 'Valid & Found'}</span>}
+                  {connectionStatus === 'failed' && <span style={{ color: 'var(--status-stopped)', fontSize: '0.85rem' }}>❌ {lang === 'id' ? 'File Tidak Valid' : 'Invalid File'}</span>}
+                </div>
+                
+                <div style={{ marginTop: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <input
+                    type="checkbox"
+                    id="aiEnableSkills"
+                    name="aiEnableSkills"
+                    checked={settings.aiEnableSkills !== false}
+                    onChange={(e) => {
+                      const newSettings = { ...settings, aiEnableSkills: e.target.checked };
+                      setSettings(newSettings);
+                      if ((window as any).api && (window as any).api.saveSettings) {
+                         (window as any).api.saveSettings(newSettings);
+                      }
+                    }}
+                    style={{ width: '1.25rem', height: '1.25rem', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                  />
+                  <label htmlFor="aiEnableSkills" style={{ fontSize: '0.95rem', color: 'var(--on-surface)', cursor: 'pointer' }}>
+                    {t.settings_ai_enable_skills || 'Aktifkan AI Skills (.sabila/skills)'}
+                  </label>
+                </div>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: '0.25rem', fontFamily: 'var(--font-body)' }}>
+                  {lang === 'id' ? 'Jika dimatikan, Sabil.ai akan mengabaikan folder instruksi custom, mempercepat waktu memproses LLM Lokal.' : 'If disabled, custom instructions will be ignored to speed up local LLM response.'}
+                </p>
+              </div>
+            )}
           </div>
         </div>
 

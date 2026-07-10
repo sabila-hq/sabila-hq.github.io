@@ -145,7 +145,7 @@ export const Projects: React.FC<ProjectsProps> = ({ lang }) => {
     setSyncing(true);
     try {
       await (window as any).api.syncProjects(projects);
-      await (window as any).api.showAlert('Vhosts synced successfully!');
+      await (window as any).api.showAlert(t.vhosts_synced || 'Vhosts synced successfully!');
     } catch (e) {
       console.error(e);
     }
@@ -166,12 +166,12 @@ export const Projects: React.FC<ProjectsProps> = ({ lang }) => {
       setProjects(latestProjects);
       await (window as any).api.syncProjects(latestProjects);
       
-      await (window as any).api.showAlert(`${t.app_gen_success}\n\nVhost berhasil disinkronkan secara otomatis.`);
+      await (window as any).api.showAlert(`${t.app_gen_success}\n\n${t.app_gen_success_vhost}`);
       setShowGenerator(false);
       setNewAppName('');
     } catch (e) {
       console.error(e);
-      await (window as any).api.showAlert('Failed to generate app');
+      await (window as any).api.showAlert(t.app_gen_failed || 'Failed to generate app');
     }
     setGenerating(false);
     setProgress(null);
@@ -209,9 +209,9 @@ export const Projects: React.FC<ProjectsProps> = ({ lang }) => {
           <button className="btn-secondary" onClick={async () => {
             const res = await (window as any).api.exportRecipe();
             if (res.success) {
-              await (window as any).api.showAlert(t.export_recipe_success?.replace('{path}', res.filePath) || `Recipe berhasil diekspor ke:\n${res.filePath}`);
+              await (window as any).api.showAlert(t.export_recipe_success?.replace('{path}', res.filePath));
             } else if (!res.canceled) {
-              await (window as any).api.showAlert(t.export_recipe_failed?.replace('{error}', res.error) || `Gagal mengekspor recipe: ${res.error}`);
+              await (window as any).api.showAlert(t.export_recipe_failed?.replace('{error}', res.error));
             }
           }} title={t.export_recipe_desc || "Export current stack (Recipe)"}>
             <Upload size={16} />
@@ -229,7 +229,7 @@ export const Projects: React.FC<ProjectsProps> = ({ lang }) => {
                 : `Recipe '${res.recipeName}' berhasil diimpor!\n\nStatus Modul:\n${statusText}\n*Catatan: Modul dengan status 'missing' harus didownload manual atau menggunakan Installer.`;
               await (window as any).api.showAlert(msg);
             } else if (!res.canceled) {
-              await (window as any).api.showAlert(t.import_recipe_failed?.replace('{error}', res.error) || `Gagal mengimpor recipe: ${res.error}`);
+              await (window as any).api.showAlert(t.import_recipe_failed?.replace('{error}', res.error));
             }
           }} title={t.import_recipe_desc || "Import team's stack (Recipe)"}>
             <Download size={16} />
@@ -444,10 +444,10 @@ export const Projects: React.FC<ProjectsProps> = ({ lang }) => {
                       if (res.status === 'active' && res.publicUrl) {
                         setTunnelModal({ open: true, url: res.publicUrl, projectName: proj.name });
                       } else {
-                        await (window as any).api.showAlert(`Gagal membuat tunnel: ${res.error || 'Terjadi kesalahan tidak diketahui.'}`);
+                        await (window as any).api.showAlert(t.tunnel_failed?.replace('{error}', res.error || t.unknown_error));
                       }
                     } catch (e: any) {
-                      await (window as any).api.showAlert(`Error: ${e.message}`);
+                      await (window as any).api.showAlert(t.error_msg?.replace('{error}', e.message));
                     } finally {
                       setTunnelingProj(null);
                     }
@@ -508,7 +508,7 @@ export const Projects: React.FC<ProjectsProps> = ({ lang }) => {
                 ))}
               </div>
             ) : (
-              <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>{t.project_info_failed || "Gagal memuat info proyek."}</p>
+              <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontFamily: 'var(--font-body)' }}>{t.project_info_failed}</p>
             )}
           </div>
         </div>
@@ -575,7 +575,7 @@ export const Projects: React.FC<ProjectsProps> = ({ lang }) => {
                     setPrepProject(null);
                     (window as any).api.openExternalUrl(`http://${prepProject.name}.test`);
                   } else {
-                    setPrepLogs(prev => [...prev, t.prep_error || "\n\nTerjadi kesalahan. Silakan periksa log di atas."]);
+                    setPrepLogs(prev => [...prev, t.prep_error || '\n\n' + (t.unknown_error || 'Error occurred. Please check the logs above.')]);
                   }
                   setIsPrepping(false);
                 }}

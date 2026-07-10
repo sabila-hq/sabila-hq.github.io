@@ -25,6 +25,7 @@ import { serviceDownloader } from './downloader'
 import { CliManager } from './cliManager'
 import { dbMigrator } from './dbMigrator'
 import { cronManager } from './cronManager'
+import { setupApiTesterIpc } from './apiTester'
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -87,6 +88,7 @@ app.whenReady().then(async () => {
   electronApp.setAppUserModelId('com.sabila')
   logger.info('Sabila starting...');
   httpApi.start(31337);
+  setupApiTesterIpc();
 
   // Initialize standard Laragon directories for compatibility and structure
   const fs = require('fs');
@@ -254,6 +256,19 @@ Always leverage these MCP servers when requested to manage files or query databa
   });
   ipcMain.on('window-hide', () => mainWindow?.hide());
 
+  ipcMain.handle('select-local-model', async () => {
+    const { dialog } = require('electron');
+    const result = await dialog.showOpenDialog(mainWindow!, {
+      title: 'Pilih File Model Lokal (.gguf)',
+      filters: [{ name: 'GGUF Models', extensions: ['gguf'] }],
+      properties: ['openFile']
+    });
+    if (!result.canceled && result.filePaths.length > 0) {
+      return result.filePaths[0];
+    }
+    return null;
+  });
+
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })
@@ -360,6 +375,7 @@ Always leverage these MCP servers when requested to manage files or query databa
       (async () => {
         let hasComposer = fs.existsSync(path.join(projectPath, 'composer.json'));
         let hasNpm = fs.existsSync(path.join(projectPath, 'package.json'));
+        let hasArtisan = fs.existsSync(path.join(projectPath, 'artisan'));
         
         let success = true;
         
@@ -371,6 +387,66 @@ Always leverage these MCP servers when requested to manage files or query databa
         if (hasNpm) {
           sendLog('Menjalankan npm install...\n');
           success = success && await runCmd('npm', ['install']);
+        }
+
+        // Jalankan perintah dev server di terminal terpisah
+        let devCommands: string[] = [];
+        
+        if (hasArtisan) {
+          devCommands.push('php artisan serve');
+          if (hasNpm) devCommands.push('npm run dev');
+        } else if (hasNpm) {
+          try {
+            const pkg = JSON.parse(fs.readFileSync(path.join(projectPath, 'package.json'), 'utf-8'));
+            if (pkg?.scripts?.dev) devCommands.push('npm run dev');
+            else if (pkg?.scripts?.start) devCommands.push('npm start');
+            else if (fs.existsSync(path.join(projectPath, 'index.js'))) devCommands.push('node index.js');
+          } catch (e) {
+            if (fs.existsSync(path.join(projectPath, 'index.js'))) devCommands.push('node index.js');
+          }
+        }
+
+        if (devCommands.length > 0) {
+          const combinedCmd = devCommands.join(' & ');
+          sendLog(`\nMenjalankan dev server (${combinedCmd}) di terminal terpisah...\n`);
+          const { spawn } = require('child_process');
+          
+          // Construct custom env with PATH similar to open-project-terminal if needed
+          const pathModule = require('path');
+          const projName = pathModule.basename(projectPath);
+          const sabilaPaths = serviceManager.getSabilaPaths();
+          
+          const projectPhpVersions = store.get('projectPhpVersions') || {};
+          const pPhp = (projectPhpVersions as Record<string, string>)[projName];
+          if (pPhp) {
+            sabilaPaths.unshift(pathModule.join(getBaseDir(), 'bin', 'php', pPhp));
+          }
+          
+          const projectNodeVersions = store.get('projectNodeVersions') || {};
+          const pNode = (projectNodeVersions as Record<string, string>)[projName];
+          if (pNode) {
+            sabilaPaths.unshift(pathModule.join(getBaseDir(), 'bin', 'node', pNode));
+          }
+          
+          const projectSecrets = store.get('projectSecrets') || {};
+          const projSecrets = (projectSecrets as Record<string, any>)[projName] || {};
+          
+          const customEnv = { ...process.env, ...projSecrets };
+          if (sabilaPaths.length > 0) {
+            const uniquePaths = Array.from(new Set(sabilaPaths));
+            customEnv.PATH = `${uniquePaths.join(';')};${process.env.PATH}`;
+          }
+
+          try {
+            spawn('cmd.exe', ['/c', 'start', 'cmd.exe', '/k', combinedCmd], {
+              cwd: projectPath,
+              env: customEnv,
+              detached: true,
+              shell: true
+            });
+          } catch (err: any) {
+            sendLog(`Gagal membuka terminal: ${err.message}\n`);
+          }
         }
         
         resolve(success);
@@ -773,7 +849,6 @@ Always leverage these MCP servers when requested to manage files or query databa
   
   ipcMain.handle('open-file', (_, filePath: string) => {
     const { execFile } = require('child_process');
-    // Validate path is within sabila directory to prevent arbitrary file access
     const normalizedPath = require('path').resolve(filePath);
     execFile('notepad++', [normalizedPath], (error: any) => {
       if (error) {
@@ -781,6 +856,17 @@ Always leverage these MCP servers when requested to manage files or query databa
       }
     });
   })
+  
+  ipcMain.handle('execute-file', (_, filePath: string) => {
+    const { exec } = require('child_process');
+    const normalizedPath = require('path').resolve(filePath);
+    if (process.platform === 'win32') {
+      exec(`start cmd.exe /K "${normalizedPath}"`);
+    } else {
+      shell.openPath(normalizedPath);
+    }
+  })
+  
   ipcMain.handle('open-directory', (_, dirPath) => shell.openPath(dirPath))
 
   // Tools
@@ -907,7 +993,7 @@ Always leverage these MCP servers when requested to manage files or query databa
     if (data.aiApiKey && safeStorage.isEncryptionAvailable()) {
       try {
         const buffer = Buffer.from(data.aiApiKey, 'base64')
-        data.aiApiKey = safeStorage.decryptString(buffer)
+        data.aiApiKey = safeStorage.decryptString(buffer).trim()
       } catch (e) {
         // May not be encrypted or invalid base64
       }
@@ -918,7 +1004,7 @@ Always leverage these MCP servers when requested to manage files or query databa
   ipcMain.handle('save-settings', (_, data) => {
     if (data.aiApiKey && safeStorage.isEncryptionAvailable()) {
       try {
-        const buffer = safeStorage.encryptString(data.aiApiKey)
+        const buffer = safeStorage.encryptString(data.aiApiKey.trim())
         data.aiApiKey = buffer.toString('base64')
       } catch (e) {
         logger.error('Failed to encrypt API key')
@@ -973,8 +1059,10 @@ Always leverage these MCP servers when requested to manage files or query databa
   });
 
   // AI Chat with SQLite memory
-  ipcMain.handle('ai-chat-send', async (_, conversationId: number, userContent: string) => {
-    return await aiService.sendMessage(conversationId, userContent);
+  ipcMain.handle('ai-chat-send', async (event, conversationId: number, userContent: string) => {
+    return await aiService.sendMessage(conversationId, userContent, (token) => {
+      event.sender.send('ai-local-progress', token);
+    });
   })
   ipcMain.handle('chat-create-conversation', (_, title?: string) => {
     return chatDb.createConversation(title || 'New Chat');
@@ -996,11 +1084,33 @@ Always leverage these MCP servers when requested to manage files or query databa
   ipcMain.handle('test-ai-connection', async (_, baseUrl: string, apiKey: string) => {
     try {
       const res = await fetch(`${baseUrl.replace(/\/$/, '')}/models`, {
-        headers: { 'Authorization': `Bearer ${apiKey}` }
+        headers: { 'Authorization': `Bearer ${apiKey.trim()}` }
       });
       return { ok: res.ok, status: res.status };
     } catch (e: any) {
       return { ok: false, status: 0, error: e.message };
+    }
+  })
+
+  ipcMain.handle('test-local-ai', async (_, modelPath: string) => {
+    try {
+      const fs = require('fs');
+      if (!modelPath) return { ok: false, error: 'Path model tidak boleh kosong' };
+      if (!fs.existsSync(modelPath)) return { ok: false, error: 'File tidak ditemukan di sistem' };
+      
+      const buffer = Buffer.alloc(4);
+      const fd = fs.openSync(modelPath, 'r');
+      fs.readSync(fd, buffer, 0, 4, 0);
+      fs.closeSync(fd);
+      
+      const magic = buffer.toString('utf8');
+      if (magic !== 'GGUF') {
+        return { ok: false, error: 'File bukan format GGUF yang valid (Signature tidak cocok)' };
+      }
+      
+      return { ok: true };
+    } catch (e: any) {
+      return { ok: false, error: e.message };
     }
   })
   

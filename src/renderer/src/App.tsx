@@ -12,6 +12,7 @@ import { SetupWizard } from './pages/SetupWizard';
 // New feature pages
 import { MailCatcherPage } from './pages/MailCatcherPage';
 import { DatabasePage } from './pages/Database';
+import { ApiTesterPage } from './pages/ApiTesterPage';
 
 function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -101,6 +102,7 @@ function App() {
           {activeTab === 'dashboard' && <Dashboard lang={language} />}
           {activeTab === 'projects' && <Projects lang={language} />}
           {activeTab === 'database' && <DatabasePage lang={language} />}
+          {activeTab === 'api-tester' && <ApiTesterPage lang={language} />}
           {activeTab === 'ai-chat' && <AiChat lang={language} />}
           {activeTab === 'tools' && <Tools lang={language} />}
           {activeTab === 'about' && <AboutPage lang={language} />}

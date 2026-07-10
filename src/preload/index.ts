@@ -9,13 +9,20 @@ const api = {
   getSettings: () => ipcRenderer.invoke('get-settings'),
   saveSettings: (data: any) => ipcRenderer.invoke('save-settings', data),
   renameDocRoot: (newName: string) => ipcRenderer.invoke('rename-doc-root', newName),
+  selectLocalModel: () => ipcRenderer.invoke('select-local-model'),
   sendAiMessage: (conversationId: number, content: string) => ipcRenderer.invoke('ai-chat-send', conversationId, content),
   chatCreateConversation: (title?: string) => ipcRenderer.invoke('chat-create-conversation', title),
   chatListConversations: () => ipcRenderer.invoke('chat-list-conversations'),
   chatGetMessages: (conversationId: number) => ipcRenderer.invoke('chat-get-messages', conversationId),
   chatDeleteConversation: (conversationId: number) => ipcRenderer.invoke('chat-delete-conversation', conversationId),
   chatUpdateTitle: (conversationId: number, title: string) => ipcRenderer.invoke('chat-update-title', conversationId, title),
+  onAiLocalProgress: (callback: (status: string) => void) => {
+    const listener = (_: any, status: string) => callback(status);
+    ipcRenderer.on('ai-local-progress', listener);
+    return () => ipcRenderer.removeListener('ai-local-progress', listener);
+  },
   testAiConnection: (baseUrl: string, apiKey: string) => ipcRenderer.invoke('test-ai-connection', baseUrl, apiKey),
+  testLocalAiConnection: (modelPath: string) => ipcRenderer.invoke('test-local-ai', modelPath),
   showAlert: (message: string, buttons?: string[]) => ipcRenderer.invoke('show-alert', message, buttons),
   getDirTree: (targetPath: string) => ipcRenderer.invoke('get-dir-tree', targetPath),
   getServiceVersions: (serviceId: string) => ipcRenderer.invoke('get-service-versions', serviceId),
@@ -27,6 +34,7 @@ const api = {
   getPhpExtensions: () => ipcRenderer.invoke('get-php-extensions'),
   togglePhpExtension: (extName: string, enable: boolean) => ipcRenderer.invoke('toggle-php-extension', extName, enable),
   openFile: (filePath: string) => ipcRenderer.invoke('open-file', filePath),
+  executeFile: (filePath: string) => ipcRenderer.invoke('execute-file', filePath),
   openDirectory: (dirPath: string) => ipcRenderer.invoke('open-directory', dirPath),
   openInIDE: (dirPath: string, ideId?: string) => ipcRenderer.invoke('open-in-ide', dirPath, ideId),
   openProjectTerminal: (dirPath: string) => ipcRenderer.invoke('open-project-terminal', dirPath),
@@ -153,6 +161,13 @@ const api = {
     return () => ipcRenderer.removeListener('system-metrics', listener);
   },
   windowControl: (action: string) => ipcRenderer.send(action),
+
+  // ============================================================
+  // API Tester
+  // ============================================================
+  apiTesterRequest: (config: any) => ipcRenderer.invoke('api-tester-request', config),
+  apiTesterGetHistory: () => ipcRenderer.invoke('api-tester-get-history'),
+  apiTesterSaveHistory: (history: any) => ipcRenderer.invoke('api-tester-save-history', history),
 
   // ============================================================
   // Database Explorer

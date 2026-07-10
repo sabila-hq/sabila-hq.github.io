@@ -134,15 +134,23 @@ export class VhostManager {
         fastcgiSecretsBlock += `\n        fastcgi_param ${key} "${projSecrets[key]}";`;
       }
 
-      const confContent = `
-server {
-    listen 80;
-    server_name ${proj.url} *.${proj.url};
-    ${sslBlock}
-    root "${documentRoot}";
-    
-    index index.html index.htm index.php;
-    
+      let isNodeProject = false;
+      if (fs.existsSync(path.join(proj.path, 'package.json')) && !fs.existsSync(path.join(proj.path, 'composer.json'))) {
+        isNodeProject = true;
+      }
+
+      let proxyBlock = `
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+    }
+`;
+
+      let phpBlock = `
     location / {
         try_files $uri $uri/ /index.php?$query_string;
     }
@@ -153,6 +161,18 @@ server {
         fastcgi_param  SCRIPT_FILENAME $document_root$fastcgi_script_name;${fastcgiSecretsBlock}
         include        fastcgi_params;
     }
+`;
+
+      const confContent = `
+server {
+    listen 80;
+    server_name ${proj.url} *.${proj.url};
+    ${sslBlock}
+    root "${documentRoot}";
+    
+    index index.html index.htm index.php;
+    
+${isNodeProject ? proxyBlock : phpBlock}
 }
 `;
       try {

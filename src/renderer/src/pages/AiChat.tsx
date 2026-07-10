@@ -80,6 +80,7 @@ export const AiChat: React.FC<{ lang?: string }> = ({ lang = 'en' }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStatus, setLoadingStatus] = useState<string>('');
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
@@ -123,7 +124,21 @@ export const AiChat: React.FC<{ lang?: string }> = ({ lang = 'en' }) => {
       setPendingPrompt(prompt);
     };
     window.addEventListener('trigger-ai-fix', handleFixAi);
-    return () => window.removeEventListener('trigger-ai-fix', handleFixAi);
+    
+    // @ts-ignore
+    let cleanupAiProgress: any = null;
+    // @ts-ignore
+    if (window.api.onAiLocalProgress) {
+      // @ts-ignore
+      cleanupAiProgress = window.api.onAiLocalProgress((status: string) => {
+        setLoadingStatus(status);
+      });
+    }
+
+    return () => {
+      window.removeEventListener('trigger-ai-fix', handleFixAi);
+      if (cleanupAiProgress) cleanupAiProgress();
+    };
   }, [lang]);
 
   // Auto-scroll
@@ -220,6 +235,7 @@ export const AiChat: React.FC<{ lang?: string }> = ({ lang = 'en' }) => {
     setMessages(prev => [...prev, { role: 'user', content: userContent }]);
     if (typeof overrideText !== 'string') setInput('');
     setIsLoading(true);
+    setLoadingStatus('');
 
     try {
       // @ts-ignore
@@ -514,7 +530,7 @@ export const AiChat: React.FC<{ lang?: string }> = ({ lang = 'en' }) => {
                   <Bot size={18} color="var(--primary)" />
                 </div>
                 <div style={{ background: 'var(--surface-container)', border: '1px solid var(--outline)', padding: '1rem', borderRadius: '16px 16px 16px 0', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontFamily: 'var(--font-body)' }}>
-                  <Loader2 size={16} className="spin-animation" /> <span>{t.ai_thinking || 'AI is thinking...'}</span>
+                  <Loader2 size={16} className="spin-animation" /> <span>{loadingStatus || t.ai_thinking}</span>
                 </div>
               </div>
             )}
@@ -561,7 +577,7 @@ export const AiChat: React.FC<{ lang?: string }> = ({ lang = 'en' }) => {
               )}
               <textarea
                 className="input-glass"
-                placeholder={t.ask_ai || "Tanya AI tentang error, config, atau project..."}
+                placeholder={t.ask_ai}
                 value={input}
                 onChange={(e) => {
                   const val = e.target.value;

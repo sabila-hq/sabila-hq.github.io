@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, FolderGit2, Bot, Settings2, Wrench, Info, Database, Heart, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Home, FolderGit2, Bot, Settings2, Wrench, Info, Database, Heart, PanelLeftClose, PanelLeftOpen, Webhook } from 'lucide-react';
 import { translations } from '../translations';
 
 interface SidebarProps {
@@ -21,6 +21,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab, lang 
     { id: 'projects', label: t.projects, icon: FolderGit2 },
     { id: 'database', label: 'Database', icon: Database },
     { id: 'ai-chat', label: t.ai_assistant, icon: Bot },
+    { id: 'api-tester', label: 'API Tester', icon: Webhook },
     { id: 'tools', label: t.tools, icon: Wrench },
   ];
 

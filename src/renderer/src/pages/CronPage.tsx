@@ -3,10 +3,11 @@ import { Clock, Plus, Play, Square, Trash2, Edit, CheckCircle, XCircle, RefreshC
 import { translations } from '../translations';
 
 export const CronPage: React.FC<{ lang?: string, embedded?: boolean }> = ({ lang = 'en', embedded = false }) => {
-  const t = translations[lang as keyof typeof translations] || translations.en;
+  const t: any = translations[lang as keyof typeof translations] || translations.en;
   const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [preset, setPreset] = useState('* * * * *');
   
   const [formData, setFormData] = useState({
     name: '',
@@ -55,6 +56,7 @@ export const CronPage: React.FC<{ lang?: string, embedded?: boolean }> = ({ lang
     await (window as any).api.cronAddTask(formData);
     setShowModal(false);
     setFormData({ name: '', command: '', cwd: '', schedule: '* * * * *' });
+    setPreset('* * * * *');
     loadTasks();
   };
 
@@ -72,7 +74,7 @@ export const CronPage: React.FC<{ lang?: string, embedded?: boolean }> = ({ lang
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button className="btn-secondary" onClick={loadTasks}><RefreshCw size={14} /></button>
           <button className="btn-primary" onClick={() => setShowModal(true)} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            <Plus size={14} /> Add Cron Job
+            <Plus size={14} /> {t.cron_add_job || 'Add Cron Job'}
           </button>
         </div>
       </div>
@@ -148,33 +150,58 @@ export const CronPage: React.FC<{ lang?: string, embedded?: boolean }> = ({ lang
 
       {showModal && (
         <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <form className="glass-panel" onSubmit={handleSubmit} style={{ width: '90%', maxWidth: '400px', padding: '1.5rem', borderRadius: '12px' }}>
-            <h3 style={{ margin: '0 0 1rem 0' }}>Add Cron Job</h3>
+          <form className="glass-panel" onSubmit={handleSubmit} style={{ width: '90%', maxWidth: '450px', padding: '1.5rem', borderRadius: '12px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <h3 style={{ margin: '0 0 1rem 0' }}>{t.cron_add_job || 'Add Cron Job'}</h3>
             
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Task Name</label>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t.cron_task_name || 'Task Name'}</label>
               <input required type="text" className="input-glass" style={{ width: '100%', padding: '0.5rem' }} value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Daily Backup" />
             </div>
             
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Command</label>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t.cron_command || 'Command'}</label>
               <input required type="text" className="input-glass" style={{ width: '100%', padding: '0.5rem', fontFamily: 'monospace' }} value={formData.command} onChange={e => setFormData({...formData, command: e.target.value})} placeholder="e.g. php artisan schedule:run" />
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Working Directory</label>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t.cron_cwd || 'Working Directory'}</label>
               <input required type="text" className="input-glass" style={{ width: '100%', padding: '0.5rem', fontFamily: 'monospace' }} value={formData.cwd} onChange={e => setFormData({...formData, cwd: e.target.value})} placeholder="C:\laragon\www\project" />
             </div>
 
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Cron Schedule</label>
-              <input required type="text" className="input-glass" style={{ width: '100%', padding: '0.5rem', fontFamily: 'monospace' }} value={formData.schedule} onChange={e => setFormData({...formData, schedule: e.target.value})} placeholder="* * * * *" />
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>Minute Hour Day Month DayOfWeek</div>
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t.cron_preset || 'Preset Schedule'}</label>
+              <select 
+                className="input-glass" 
+                style={{ width: '100%', padding: '0.5rem', appearance: 'menulist' }}
+                value={preset}
+                onChange={(e) => {
+                  setPreset(e.target.value);
+                  if (e.target.value !== 'custom') {
+                    setFormData({ ...formData, schedule: e.target.value });
+                  }
+                }}
+              >
+                <option value="* * * * *">{t.cron_preset_minute || 'Every Minute (* * * * *)'}</option>
+                <option value="*/5 * * * *">{t.cron_preset_5minute || 'Every 5 Minutes (*/5 * * * *)'}</option>
+                <option value="0 * * * *">{t.cron_preset_hour || 'Every Hour (0 * * * *)'}</option>
+                <option value="0 0 * * *">{t.cron_preset_day || 'Every Day (0 0 * * *)'}</option>
+                <option value="0 0 * * 0">{t.cron_preset_week || 'Every Week (0 0 * * 0)'}</option>
+                <option value="0 0 1 * *">{t.cron_preset_month || 'Every Month (0 0 1 * *)'}</option>
+                <option value="custom">{t.cron_preset_custom || 'Custom (Advanced)'}</option>
+              </select>
             </div>
 
-            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
-              <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-              <button type="submit" className="btn-primary">Save Task</button>
+            {preset === 'custom' && (
+              <div style={{ marginBottom: '1.5rem', padding: '0.75rem', background: 'rgba(0,0,0,0.1)', borderRadius: '8px' }}>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{t.cron_schedule || 'Cron Schedule'} (Custom)</label>
+                <input required type="text" className="input-glass" style={{ width: '100%', padding: '0.5rem', fontFamily: 'monospace' }} value={formData.schedule} onChange={e => setFormData({...formData, schedule: e.target.value})} placeholder="* * * * *" />
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.3rem' }}>Minute Hour Day Month DayOfWeek</div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+              <button type="button" className="btn-secondary" onClick={() => setShowModal(false)}>{t.cron_btn_cancel || 'Cancel'}</button>
+              <button type="submit" className="btn-primary">{t.cron_btn_save || 'Save Task'}</button>
             </div>
           </form>
         </div>
